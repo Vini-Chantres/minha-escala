@@ -26,6 +26,8 @@ O CI executa em `dev`/`hml` e pull requests; deploy só em `main`. A publicaçã
 
 O deploy real ainda depende dos tokens DigitalOcean/Vercel, IDs/APP_URL e variáveis de runtime/SMTP Vercel. O secret de migrations e as demais conexões devem ser atualizados após a troca da senha Neon.
 
+[CI Linux da branch dev](https://github.com/Vini-Chantres/minha-escala/actions/runs/35344240726) aprovado: quatro testes de publicação, 22 testes frontend, 24 testes .NET com PostgreSQL real, restore/build/lint e imagem Docker de produção construída com sucesso. Nenhum teste ignorado ou com falha. A API local foi iniciada com a conexão Neon pooled real e retornou `{"status":"healthy"}` em `/health`; foi parada após essa conferência somente de leitura. `.env` local foi configurado e permanece ignorado pelo Git.
+
 ## Ambiente e resultados
 
 | Verificação | Resultado |
