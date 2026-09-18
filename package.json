@@ -1,0 +1,13 @@
+{
+  "name": "minha-escala-infrastructure",
+  "private": true,
+  "scripts": {
+    "test:deploy": "node --test .github/scripts/deploy-config.test.mjs",
+    "neon:plan": "neon config plan",
+    "neon:deploy": "neon deploy"
+  },
+  "dependencies": {
+    "@neon/config": "^1.7.2",
+    "@neon/env": "^1.4.3"
+  }
+}

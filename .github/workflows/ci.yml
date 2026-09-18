@@ -1,0 +1,75 @@
+name: Validar projeto
+
+on:
+  push:
+    branches: [dev, hml]
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    name: Frontend — lint, build e testes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Validar configuração e roteamento da publicação
+        working-directory: .
+        run: node --test .github/scripts/deploy-config.test.mjs
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+      - run: npm test
+
+  backend:
+    name: Backend — build e testes com PostgreSQL
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: escala_test_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d escala_test_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      TEST_DATABASE_URL: postgresql://postgres:ci-only-password@127.0.0.1:5432/escala_test_ci?sslmode=disable
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+        with:
+          dotnet-version: '10.0.x'
+          cache: true
+          cache-dependency-path: backend/**/packages.lock.json
+      - run: dotnet restore MinhaEscala.slnx --locked-mode
+      - run: dotnet build MinhaEscala.slnx --no-restore -c Release
+      - run: dotnet test MinhaEscala.slnx --no-build -c Release
+      - name: Validar imagem de produção
+        working-directory: .
+        run: docker build -f Dockerfile.vercel -t minha-escala-api:ci .
