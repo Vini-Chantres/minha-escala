@@ -12,7 +12,19 @@ Validação original executada em 17/09/2026 (America/Sao_Paulo), após implemen
 - Actions oficiais fixadas por SHA consultado nos respectivos repositórios; CLI Vercel fixado em 59.23.1. Especificação DigitalOcean e Container Images Vercel conferidas na documentação oficial.
 - O PostgreSQL temporário foi parado e o arquivo temporário de senha foi removido. Nenhum banco Neon ou serviço externo foi alterado.
 
-**Limites:** nenhum deploy externo ou execução no GitHub foi realizado, pois não há repositório vinculado nem secrets/contas de hospedagem fornecidos nesta pasta. O Docker CLI está instalado, mas o daemon Docker Desktop não está em execução; portanto a imagem não foi construída localmente. O build da imagem é uma etapa obrigatória do CI Linux antes do deploy. DNS, disponibilidade do recurso beta Vercel, imagem no ambiente remoto e SMTP externo precisam ser confirmados na primeira publicação. Consulte [DEPLOYMENT.md](DEPLOYMENT.md).
+**Limites da verificação local inicial:** o Docker CLI está instalado, mas o daemon Docker Desktop não está em execução; portanto a imagem não foi construída localmente. O build da imagem é uma etapa obrigatória do CI Linux antes do deploy. Disponibilidade dos recursos beta Vercel e SMTP externo precisam ser confirmados na primeira publicação. Consulte [DEPLOYMENT.md](DEPLOYMENT.md).
+
+## Integração Neon e GitHub — 18/09/2026
+
+Projeto Neon `aged-pond-28213465` vinculado à branch `production`. CLI Neon 5.0.0, skills e configuração MCP OAuth do Codex instalados. Foi usado Node 22.23.2 portátil para as ferramentas que exigem Node 22.20+. O login Neon foi concluído no armazenamento padrão local, pois o CLI não conseguiu usar o chaveiro deste Windows.
+
+`neon.ts` contém `defineConfig({})`, conforme solicitado. `neon config plan` e `neon deploy` concluíram sem alterações na política remota. A migration EF Core `20260918023154_InitialCreate` foi aplicada no Neon autorizado por conexão direta, TLS com validação de certificado/hostname e channel binding obrigatório. O histórico de migrations e nove tabelas foram conferidos por leitura: `__EFMigrationsHistory`, `audit_logs`, `auth_sessions`, `invitations`, `password_resets`, `refresh_tokens`, `schedule_entries`, `tenants`, `users`. Nenhum dado de teste foi inserido nesse banco de produção.
+
+Repositório Git configurado para `Vini-Chantres/minha-escala`, preservando seu commit inicial e LICENSE. Ambiente `production` criado e secret criptografado `NEON_MIGRATION_DATABASE_URL` configurado após autorização explícita. Arquivos locais de credenciais, contexto Neon e configurações de agentes estão fora do Git. Uma verificação dos arquivos preparados para commit não encontrou senhas Neon ou chaves privadas.
+
+O CI executa em `dev`/`hml` e pull requests; deploy só em `main`. A publicação foi adaptada para contas sem domínio próprio: frontend estático DigitalOcean, API em serviço C# Vercel e rewrites de páginas para a origem DigitalOcean, com um único endereço público Vercel. Mais quatro testes nativos Node foram aprovados para configuração HTTPS, ausência de secrets, preservação das rotas API/health e renderização segura das rewrites. Os workflows atualizados passaram no actionlint.
+
+O deploy real ainda depende dos tokens DigitalOcean/Vercel, IDs/APP_URL e variáveis de runtime/SMTP Vercel. O secret de migrations e as demais conexões devem ser atualizados após a troca da senha Neon.
 
 ## Ambiente e resultados
 
@@ -71,6 +83,6 @@ Para teste numa branch Neon exclusiva, mantenha `sslmode=require`. Sem `TEST_DAT
 
 ## Limites desta validação
 
-O banco Neon do usuário não foi acessado porque sua conexão não foi fornecida. PostgreSQL/Npgsql/EF Core foram executados de verdade localmente; a URI Neon e os requisitos de TLS foram testados. Envio externo de SMTP e implantação HTTPS não foram realizados: recuperação/convites foram exercitados pelo fallback local de desenvolvimento e pela API. Configure credenciais SMTP válidas e os segredos no servidor antes de usar em produção.
+Na validação original, PostgreSQL/Npgsql/EF Core foram executados localmente e a URI Neon/requisitos TLS foram testados. Após o usuário fornecer a conexão, o Neon real foi integrado e migrado conforme a seção acima. Envio externo de SMTP e implantação HTTPS ainda não foram realizados: recuperação/convites foram exercitados pelo fallback local de desenvolvimento e pela API. Configure credenciais SMTP válidas e os segredos no servidor antes de usar em produção.
 
 Durante a verificação foram corrigidas vulnerabilidades de dependências de e-mail/testes, conflitos de versão EF Core, tipos nullable SMTP e preenchimento do formulário após carregamento. Bloqueios de arquivos do Windows ocorreram quando serviços de desenvolvimento estavam em execução; os serviços foram parados e a preparação da publicação foi concluída. O README explica essa sequência.
