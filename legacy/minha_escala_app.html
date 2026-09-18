@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Minha Escala 💗</title>
+<style>
+:root{--pink:#e98caf;--pink2:#fbe0eb;--ink:#673d50;--bg:#fff7fa;--white:#fff;--line:#f0d9e2}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(150deg,#fff9fc,#fdebf3);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink)}
+.app{max-width:460px;margin:auto;padding:20px 16px 90px}.top{display:flex;justify-content:space-between;align-items:center}.top h1{margin:0;font-size:26px}.muted{font-size:12px;opacity:.65;margin-top:3px}.flower{background:#fff;width:46px;height:46px;border-radius:16px;display:grid;place-items:center;box-shadow:0 8px 25px #a9517118;font-size:22px}
+.card{background:#fff;border-radius:24px;padding:18px;margin-top:14px;box-shadow:0 12px 35px #a9517112;border:1px solid #fff}.hero{background:linear-gradient(135deg,#e98caf,#d9779e);color:#fff}.hero .muted{color:#fff;opacity:.85}.hero h2{margin:6px 0 0;font-size:25px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:15px}.stat{background:#ffffff25;border-radius:15px;padding:10px;text-align:center}.stat b{display:block;font-size:19px}.stat span{font-size:10px}
+.month{display:flex;align-items:center;justify-content:space-between}.month b{text-transform:capitalize;font-size:18px}.nav{border:0;background:#fff1f6;color:var(--pink);width:36px;height:36px;border-radius:12px;font-size:22px}
+.week,.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:12px}.week span{text-align:center;font-size:9px;opacity:.55}.day{min-height:51px;border:0;border-radius:12px;background:#fff8fb;color:var(--ink);font-weight:700;font-size:12px;padding:4px;cursor:pointer}.day.today{outline:2px solid #efb2c9}.day small{display:block;font-size:7px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.day.off{background:#f7c6da}.day.work{border:2px solid var(--sector,#f0d9e2);background:#fff}.day.empty{background:transparent}.section-title{display:flex;justify-content:space-between;align-items:center}.section-title b{font-size:16px}
+label{display:block;font-size:11px;font-weight:800;margin:12px 0 6px}input,select{width:100%;padding:12px;border:1px solid var(--line);border-radius:13px;background:#fff;color:var(--ink);font-size:14px}button.primary{width:100%;margin-top:13px;border:0;padding:13px;border-radius:14px;background:var(--pink);color:#fff;font-weight:800}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:9px}.entries{display:grid;gap:8px}.entry{display:flex;align-items:center;justify-content:space-between;padding:11px;border-radius:15px;background:#fff8fb;border-left:5px solid var(--c,#e98caf)}.entry b{display:block;font-size:13px}.entry span{font-size:10px;opacity:.7}.badge{font-size:10px;padding:6px 9px;background:#fff;border-radius:20px}.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.legend span{font-size:10px}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px}
+.danger{border:0;background:transparent;color:#b86a85;font-size:11px}.empty{text-align:center;font-size:12px;opacity:.55;padding:8px}
+</style></head><body><div class="app">
+<div class="top"><div><h1>Minha Escala 💗</h1><div class="muted">Sua rotina de trabalho, organizada com carinho</div></div><div class="flower">🌷</div></div>
+
+<section class="card hero"><div class="muted">PRÓXIMA FOLGA</div><h2 id="nextOff">—</h2><div id="nextSector" class="muted">Cadastre suas folgas para acompanhar</div>
+<div class="stats"><div class="stat"><b id="offCount">0</b><span>folgas no mês</span></div><div class="stat"><b id="workCount">0</b><span>plantões</span></div><div class="stat"><b id="sectorCount">0</b><span>setores</span></div></div></section>
+
+<section class="card"><div class="month"><button class="nav" onclick="move(-1)">‹</button><b id="month"></b><button class="nav" onclick="move(1)">›</button></div>
+<div class="week"><span>DOM</span><span>SEG</span><span>TER</span><span>QUA</span><span>QUI</span><span>SEX</span><span>SÁB</span></div><div id="calendar" class="grid"></div><div id="legend" class="legend"></div></section>
+
+<section class="card"><div class="section-title"><b>Adicionar à escala ✨</b><button class="danger" onclick="clearForm()">limpar</button></div>
+<div class="row"><div><label>Data</label><input id="date" type="date"></div><div><label>Tipo</label><select id="type"><option value="folga">🌸 Folga</option><option value="trabalho">💗 Plantão</option></select></div></div>
+<label>Setor</label><input id="sector" list="sectors" placeholder="Ex.: Clínica Médica 2"><datalist id="sectors"></datalist>
+<button class="primary" onclick="save()">Salvar na minha escala</button></section>
+
+<section class="card"><div class="section-title"><b>Próximos dias</b></div><div id="entries" class="entries" style="margin-top:10px"></div></section>
+</div>
+<script>
+let current=new Date(), data=JSON.parse(localStorage.getItem('minhaEscala')||'{}');
+const colors=['#e98caf','#9b8de0','#79b9ad','#e5ad71','#80a8d9','#c989b5','#8dbb73','#d77d7d'];
+const pad=n=>String(n).padStart(2,'0'), key=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const fmt=k=>new Date(k+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'});
+function sectorColor(s){let names=[...new Set(Object.values(data).map(x=>x.sector).filter(Boolean))];let i=Math.max(0,names.indexOf(s));return colors[i%colors.length]}
+function render(){
+ let y=current.getFullYear(),m=current.getMonth(),first=new Date(y,m,1),last=new Date(y,m+1,0);
+ document.getElementById('month').textContent=first.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+ let cal=document.getElementById('calendar');cal.innerHTML='';
+ for(let i=0;i<first.getDay();i++){let b=document.createElement('div');b.className='day empty';cal.appendChild(b)}
+ for(let n=1;n<=last.getDate();n++){let d=new Date(y,m,n),k=key(d),v=data[k],b=document.createElement('button');b.className='day '+(v?(v.type==='folga'?'off':'work'):'');if(k===key(new Date()))b.classList.add('today');
+ if(v&&v.sector)b.style.setProperty('--sector',sectorColor(v.sector));b.innerHTML=n+(v?`<small>${v.type==='folga'?'🌸 Folga':v.sector||'Plantão'}</small>`:'');
+ b.onclick=()=>{date.value=k;type.value=v?.type||'folga';sector.value=v?.sector||''};cal.appendChild(b)}
+ updateStats(y,m);renderEntries();renderLegend();
+}
+function updateStats(y,m){let vals=Object.entries(data).filter(([k])=>k.startsWith(`${y}-${pad(m+1)}-`)).map(x=>x[1]);offCount.textContent=vals.filter(v=>v.type==='folga').length;workCount.textContent=vals.filter(v=>v.type==='trabalho').length;sectorCount.textContent=new Set(vals.map(v=>v.sector).filter(Boolean)).size;
+ let future=Object.entries(data).filter(([k,v])=>v.type==='folga'&&k>=key(new Date())).sort(([a],[b])=>a.localeCompare(b))[0];nextOff.textContent=future?fmt(future[0]):'—';nextSector.textContent=future?(future[1].sector||'Dia de descanso 🌸'):'Cadastre suas folgas para acompanhar';
+}
+function renderEntries(){let arr=Object.entries(data).filter(([k])=>k>=key(new Date())).sort(([a],[b])=>a.localeCompare(b)).slice(0,12),el=entries;el.innerHTML=arr.length?'':'<div class="empty">Nenhum registro futuro ainda 🌷</div>';arr.forEach(([k,v])=>{let x=document.createElement('div');x.className='entry';x.style.setProperty('--c',sectorColor(v.sector));x.innerHTML=`<div><b>${new Date(k+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'})}</b><span>${v.sector||'Sem setor'}</span></div><span class="badge">${v.type==='folga'?'🌸 Folga':'💗 Plantão'}</span>`;el.appendChild(x)})}
+function renderLegend(){let names=[...new Set(Object.values(data).map(v=>v.sector).filter(Boolean))];legend.innerHTML=names.map(s=>`<span><i class="dot" style="background:${sectorColor(s)}"></i>${s}</span>`).join('')}
+function save(){if(!date.value)return alert('Escolha uma data 💗');data[date.value]={type:type.value,sector:sector.value.trim()};localStorage.setItem('minhaEscala',JSON.stringify(data));current=new Date(date.value+'T12:00:00');render()}
+function clearForm(){date.value=key(new Date());type.value='folga';sector.value=''}
+function move(n){current.setMonth(current.getMonth()+n);render()}
+date.value=key(new Date());render();
+</script></body></html>

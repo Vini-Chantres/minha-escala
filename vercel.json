@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "backend": { "root": ".", "runtime": "container", "entrypoint": "Dockerfile.vercel" }
+  },
+  "rewrites": [
+    { "source": "/api/:path*", "destination": { "service": "backend" } },
+    { "source": "/health", "destination": { "service": "backend" } },
+    { "source": "/:path*", "destination": "https://example.invalid/:path*" }
+  ],
+  "git": { "deploymentEnabled": false }
+}

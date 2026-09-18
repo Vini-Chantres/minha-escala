@@ -1,0 +1,113 @@
+name: Publicar — DigitalOcean e Vercel
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: minha-escala-production
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    uses: ./.github/workflows/ci.yml
+
+  configuration:
+    name: Conferir configuração de produção
+    if: github.ref == 'refs/heads/main'
+    needs: checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    environment: production
+    env:
+      APP_URL: ${{ vars.APP_URL }}
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      DIGITALOCEAN_ACCESS_TOKEN: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+      NEON_MIGRATION_DATABASE_URL: ${{ secrets.NEON_MIGRATION_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Verificar variáveis e secrets necessários
+        env:
+          REQUIRED_DEPLOY_KEYS: VERCEL_ORG_ID,VERCEL_PROJECT_ID,VERCEL_TOKEN,DIGITALOCEAN_ACCESS_TOKEN,NEON_MIGRATION_DATABASE_URL
+        run: node .github/scripts/check-deploy-config.mjs
+
+  frontend:
+    name: Publicar frontend na DigitalOcean
+    if: github.ref == 'refs/heads/main'
+    needs: configuration
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: production
+    outputs:
+      static_url: ${{ fromJSON(steps.deploy.outputs.app).live_url }}
+    env:
+      DO_APP_NAME: ${{ vars.DO_APP_NAME || 'minha-escala-frontend' }}
+      DO_REGION: ${{ vars.DO_REGION || 'nyc' }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Publicar site estático React
+        id: deploy
+        uses: digitalocean/app_action/deploy@cc55bc9b848d25f9c1c9f831cf843fbab3fbfb15 # v2
+        env:
+          SOURCE_REPOSITORY: ${{ github.repository }}
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+          app_spec_location: .do/app.yaml
+
+  backend:
+    name: Migrations Neon e backend Vercel
+    if: github.ref == 'refs/heads/main'
+    needs: [configuration, frontend]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: production
+    env:
+      APP_URL: ${{ vars.APP_URL }}
+      DO_FRONTEND_URL: ${{ needs.frontend.outputs.static_url }}
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+        with:
+          dotnet-version: '10.0.x'
+      - name: Restaurar ferramentas e migration
+        run: |
+          dotnet tool restore
+          dotnet restore backend/Infrastructure/Infrastructure.csproj --locked-mode
+      - name: Aplicar migrations no Neon
+        env:
+          DATABASE_URL: ${{ secrets.NEON_MIGRATION_DATABASE_URL }}
+          ASPNETCORE_ENVIRONMENT: Production
+        run: dotnet ef database update --project backend/Infrastructure --startup-project backend/Infrastructure --configuration Release
+      - name: Configurar a origem pública única
+        run: node .github/scripts/render-vercel-config.mjs
+      - name: Instalar cliente Vercel
+        run: npm install --global vercel@59.23.1
+      - name: Publicar contêiner .NET e rotas do frontend
+        run: vercel deploy --prod --yes --token "$VERCEL_TOKEN"
+      - name: Verificar API e frontend públicos
+        run: |
+          curl --fail --silent --show-error --retry 12 --retry-delay 10 --retry-all-errors --max-time 30 "$APP_URL/health"
+          curl --fail --silent --show-error --retry 12 --retry-delay 10 --retry-all-errors --max-time 30 --output /dev/null "$APP_URL"
