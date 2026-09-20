@@ -53,6 +53,7 @@ jobs:
     outputs:
       static_url: ${{ fromJSON(steps.deploy.outputs.app).live_url }}
     env:
+      APP_URL: ${{ vars.APP_URL }}
       DO_APP_NAME: ${{ vars.DO_APP_NAME || 'minha-escala-frontend' }}
       DO_REGION: ${{ vars.DO_REGION || 'nyc' }}
     steps:

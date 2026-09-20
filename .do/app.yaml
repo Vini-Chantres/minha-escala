@@ -17,6 +17,10 @@ static_sites:
         value: ''
         scope: BUILD_TIME
         type: GENERAL
+      - key: VITE_PUBLIC_APP_URL
+        value: ${APP_URL}
+        scope: BUILD_TIME
+        type: GENERAL
 ingress:
   rules:
     - match:
