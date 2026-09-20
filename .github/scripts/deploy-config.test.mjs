@@ -22,11 +22,12 @@ test('encaminha páginas à DigitalOcean mantendo API e health no serviço C#', 
   try {
     assert.equal(run('render-vercel-config', { DO_FRONTEND_URL: 'https://minha-escala-test.ondigitalocean.app/' }).status, 0);
     const config = JSON.parse(readFileSync('vercel.json', 'utf8'));
-    assert.deepEqual(config.rewrites.slice(0, 2), [
+    assert.deepEqual(config.rewrites.slice(0, 3), [
       { source: '/api/:path*', destination: { service: 'backend' } },
       { source: '/health', destination: { service: 'backend' } },
+      { source: '/', destination: 'https://minha-escala-test.ondigitalocean.app/' },
     ]);
-    assert.equal(config.rewrites[2].destination, 'https://minha-escala-test.ondigitalocean.app/:path*');
+    assert.equal(config.rewrites[3].destination, 'https://minha-escala-test.ondigitalocean.app/:path*');
     assert.equal(config.services.backend.runtime, 'container');
     assert.equal(config.git.deploymentEnabled, false);
   } finally { writeFileSync('vercel.json', original); }
