@@ -6,6 +6,7 @@
   "rewrites": [
     { "source": "/api/:path*", "destination": { "service": "backend" } },
     { "source": "/health", "destination": { "service": "backend" } },
+    { "source": "/", "destination": "https://example.invalid/" },
     { "source": "/:path*", "destination": "https://example.invalid/:path*" }
   ],
   "git": { "deploymentEnabled": false }
