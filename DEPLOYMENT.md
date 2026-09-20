@@ -20,7 +20,7 @@ Autorize a integração GitHub do App Platform a ler o repositório e crie um to
 
 `.do/app.yaml` cria/atualiza um app pelo nome estável `DO_APP_NAME`, com `frontend/` como origem, `npm ci && npm run build`, `dist/` como saída e fallback `index.html`. O deploy automático da integração está desativado para que somente o workflow publique após CI. Não reutilize o nome de outro app que não deva ser gerenciado por este spec.
 
-O spec deixa `VITE_API_URL` **vazia**: o React chama `/api` no endereço público Vercel. Nunca coloque banco/JWT/SMTP em variáveis `VITE_*`. A action retorna o endereço `*.ondigitalocean.app`; o workflow preenche automaticamente as rewrites Vercel com ele. Não é preciso cadastrar domínio customizado nem informar antecipadamente o endereço DigitalOcean.
+O spec deixa `VITE_API_URL` **vazia**: o React chama `/api` no endereço público Vercel. `VITE_PUBLIC_APP_URL` recebe `APP_URL` durante o build e redireciona automaticamente acessos diretos a `*.ondigitalocean.app` para a origem Vercel, preservando caminho e parâmetros. Nunca coloque banco/JWT/SMTP em variáveis `VITE_*`. A action retorna o endereço `*.ondigitalocean.app`; o workflow preenche automaticamente as rewrites Vercel com ele. Não é preciso cadastrar domínio customizado nem informar antecipadamente o endereço DigitalOcean.
 
 O App Platform recompila a branch `main`; evite modificar/publicar essa branch durante uma execução. Os deploys pelo GitHub são serializados e não interrompem migrations em andamento. Observe limites e cobrança da conta: este spec usa site estático, sem web service pago adicional para fazer proxy.
 
