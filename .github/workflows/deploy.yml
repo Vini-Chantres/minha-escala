@@ -106,9 +106,13 @@ jobs:
         run: node .github/scripts/render-vercel-config.mjs
       - name: Instalar cliente Vercel
         run: npm install --global vercel@59.23.1
+      - name: Sincronizar origem pública no backend
+        run: printf '%s' "$APP_URL" | vercel env add APP_URL production --force --token "$VERCEL_TOKEN"
       - name: Publicar contêiner .NET e rotas do frontend
         run: vercel deploy --prod --yes --token "$VERCEL_TOKEN"
       - name: Verificar API e frontend públicos
         run: |
           curl --fail --silent --show-error --retry 12 --retry-delay 10 --retry-all-errors --max-time 30 "$APP_URL/health"
           curl --fail --silent --show-error --retry 12 --retry-delay 10 --retry-all-errors --max-time 30 --output /dev/null "$APP_URL"
+          refresh_status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --request POST --header 'X-CSRF: 1' --header "Origin: $APP_URL" "$APP_URL/api/auth/refresh")"
+          test "$refresh_status" = "401"
