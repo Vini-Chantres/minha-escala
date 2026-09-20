@@ -107,7 +107,7 @@ jobs:
       - name: Instalar cliente Vercel
         run: npm install --global vercel@59.23.1
       - name: Sincronizar origem pública no backend
-        run: printf '%s' "$APP_URL" | vercel env add APP_URL production --force --token "$VERCEL_TOKEN"
+        run: node .github/scripts/sync-vercel-app-url.mjs
       - name: Publicar contêiner .NET e rotas do frontend
         run: vercel deploy --prod --yes --token "$VERCEL_TOKEN"
       - name: Verificar API e frontend públicos
