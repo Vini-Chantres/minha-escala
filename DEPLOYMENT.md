@@ -28,7 +28,7 @@ O App Platform recompila a branch `main`; evite modificar/publicar essa branch d
 
 Crie/vincule um projeto com Root Directory **na raiz do repositório**, não em `frontend/` ou `backend/`. Confirme suporte a Services/Container Images. O serviço `backend` de `vercel.json` usa `Dockerfile.vercel`; a imagem compila a API, executa como usuário sem privilégios e escuta HTTP em 8080. HTTPS é terminado pela Vercel.
 
-Use o domínio de produção HTTPS padrão do projeto em `APP_URL`. Os IDs da organização/equipe e do projeto estão nas configurações Vercel ou em `.vercel/project.json` após vinculação pelo CLI. Não versionar esse arquivo. Crie um token com acesso à equipe/projeto. `git.deploymentEnabled: false` evita deploy direto da integração fora das Actions. A regra de páginas começa com `example.invalid` no arquivo versionado e é substituída pelo endereço real retornado pela DigitalOcean **durante o workflow**.
+Use o domínio de produção HTTPS padrão do projeto em `APP_URL`. Os IDs da organização/equipe e do projeto estão nas configurações Vercel ou em `.vercel/project.json` após vinculação pelo CLI. Não versionar esse arquivo. Crie um token com acesso à equipe/projeto. A Action sincroniza a variable GitHub `APP_URL` com a variável Production homônima da Vercel antes de cada publicação, evitando divergências no CORS/CSRF e nos links enviados por e-mail. `git.deploymentEnabled: false` evita deploy direto da integração fora das Actions. A regra de páginas começa com `example.invalid` no arquivo versionado e é substituída pelo endereço real retornado pela DigitalOcean **durante o workflow**.
 
 Nas variáveis **Production da Vercel**, configure:
 
@@ -86,7 +86,7 @@ Para preparar em outro computador, instale o CLI, conclua `neon login`, execute 
 2. Conferência dos secrets/variables de produção. Configuração ausente impede qualquer publicação.
 3. Publicação do site estático DigitalOcean e obtenção automática da URL de assets.
 4. Migrations Neon por conexão direta, renderização de `vercel.json`, deploy do backend e das rotas Vercel.
-5. Verificação HTTP de `/health` e da página inicial na origem pública.
+5. Verificação HTTP de `/health`, da página inicial e da aceitação da origem no endpoint de renovação de sessão.
 
 Futuras migrations e releases frontend devem ser compatíveis com a API que permanece ativa durante a publicação. O workflow não faz rollback destrutivo do banco. Após a primeira publicação, confira cadastro/login, CRUD da escala, recarregamento/renovação de sessão, logout, convites e recuperação por SMTP. HTTP 200 não substitui essa checagem funcional real.
 
