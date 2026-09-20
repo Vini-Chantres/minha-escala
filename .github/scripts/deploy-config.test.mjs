@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
+import { syncVercelAppUrl } from './sync-vercel-app-url.mjs';
 
 function run(script, env) {
   return spawnSync(process.execPath, [`.github/scripts/${script}.mjs`], {
@@ -38,4 +39,31 @@ test('não altera a configuração com uma origem DigitalOcean inválida', () =>
     assert.notEqual(run('render-vercel-config', { DO_FRONTEND_URL }).status, 0);
     assert.equal(readFileSync('vercel.json', 'utf8'), original);
   }
+});
+test('atualiza APP_URL de produção pelo projeto e equipe corretos da Vercel', async () => {
+  let request;
+  await syncVercelAppUrl({
+    APP_URL: 'https://minha-escala.vercel.app',
+    VERCEL_ORG_ID: 'team_test',
+    VERCEL_PROJECT_ID: 'prj_test',
+    VERCEL_TOKEN: 'token-test',
+  }, async (url, options) => {
+    request = { url: url.toString(), options };
+    return { ok: true, status: 201 };
+  });
+
+  assert.equal(request.url, 'https://api.vercel.com/v10/projects/prj_test/env?upsert=true&teamId=team_test');
+  assert.equal(request.options.method, 'POST');
+  assert.equal(request.options.headers.Authorization, 'Bearer token-test');
+  assert.deepEqual(JSON.parse(request.options.body), {
+    key: 'APP_URL', value: 'https://minha-escala.vercel.app', type: 'plain', target: ['production'],
+  });
+});
+test('interrompe o deploy quando a Vercel rejeita a sincronização', async () => {
+  await assert.rejects(syncVercelAppUrl({
+    APP_URL: 'https://minha-escala.vercel.app',
+    VERCEL_ORG_ID: 'team_test',
+    VERCEL_PROJECT_ID: 'prj_test',
+    VERCEL_TOKEN: 'token-test',
+  }, async () => ({ ok: false, status: 403 })), /HTTP 403/);
 });
